@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Multi-Robot Task Negotiation Engine"
+description = "An interactive autonomous warehouse command center that simulates fleet coordination, task negotiation, collision avoidance, battery-aware scheduling, deadlock recovery, and controller failover for large robot fleets."
+version = "1.0.0"
+id = "artifacts/multi-robot-engine"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24671
+
+[services.development]
+run = "pnpm --filter @workspace/multi-robot-engine run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/multi-robot-engine", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/multi-robot-engine/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24671"
+BASE_PATH = "/"

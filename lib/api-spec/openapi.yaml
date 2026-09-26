@@ -1,0 +1,192 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: simulation
+    description: Multi-robot warehouse simulation
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /simulation/snapshot:
+    get:
+      operationId: getSimulationSnapshot
+      tags: [simulation]
+      summary: Get the current fleet simulation snapshot
+      responses:
+        "200":
+          description: Current warehouse state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimulationSnapshot"
+  /simulation/command:
+    post:
+      operationId: sendSimulationCommand
+      tags: [simulation]
+      summary: Apply a control command to the simulation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulationCommandInput"
+      responses:
+        "200":
+          description: Updated warehouse state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimulationSnapshot"
+        "400":
+          description: Invalid command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Robot:
+      type: object
+      required: [id, type, status, battery, x, y, speed, taskId, destination, route, health]
+      properties:
+        id: { type: string }
+        type: { type: string }
+        status: { type: string }
+        battery: { type: integer }
+        x: { type: number }
+        y: { type: number }
+        speed: { type: number }
+        taskId: { type: string }
+        destination: { type: string }
+        route:
+          type: array
+          items: { type: string }
+        health: { type: integer }
+    Task:
+      type: object
+      required: [id, priority, status, assignedRobot, pickup, destination, eta, capability]
+      properties:
+        id: { type: string }
+        priority: { type: string }
+        status: { type: string }
+        assignedRobot: { type: string }
+        pickup: { type: string }
+        destination: { type: string }
+        eta: { type: integer }
+        capability: { type: string }
+    Event:
+      type: object
+      required: [id, time, type, message]
+      properties:
+        id: { type: string }
+        time: { type: string }
+        type: { type: string }
+        message: { type: string }
+    Conflict:
+      type: object
+      required: [id, robotA, robotB, distance, eta, resolution, severity]
+      properties:
+        id: { type: string }
+        robotA: { type: string }
+        robotB: { type: string }
+        distance: { type: number }
+        eta: { type: number }
+        resolution: { type: string }
+        severity: { type: string }
+    FleetStats:
+      type: object
+      required: [total, working, idle, charging, lowBattery, failed, negotiating, conflicts, deadlocks, tasks, completed, utilization]
+      properties:
+        total: { type: integer }
+        working: { type: integer }
+        idle: { type: integer }
+        charging: { type: integer }
+        lowBattery: { type: integer }
+        failed: { type: integer }
+        negotiating: { type: integer }
+        conflicts: { type: integer }
+        deadlocks: { type: integer }
+        tasks: { type: integer }
+        completed: { type: integer }
+        utilization: { type: integer }
+    Warehouse:
+      type: object
+      required: [model, dimensions, controllerOnline, localAutonomy, isRunning, elapsedSeconds]
+      properties:
+        model: { type: string }
+        dimensions: { type: string }
+        controllerOnline: { type: boolean }
+        localAutonomy: { type: boolean }
+        isRunning: { type: boolean }
+        elapsedSeconds: { type: integer }
+    SimulationSnapshot:
+      type: object
+      required: [warehouse, fleet, robots, tasks, events, conflicts, selectedRobotId]
+      properties:
+        warehouse:
+          $ref: "#/components/schemas/Warehouse"
+        fleet:
+          $ref: "#/components/schemas/FleetStats"
+        robots:
+          type: array
+          items:
+            $ref: "#/components/schemas/Robot"
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        conflicts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Conflict"
+        selectedRobotId:
+          type: string
+    SimulationCommandInput:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [start, pause, reset, add_task, fail_robot, create_conflict, create_deadlock, disable_communication, controller_offline, restore_controller, send_to_charge, reassign_task, set_fleet_size, select_robot, set_model]
+        robotId:
+          type: [string, "null"]
+        fleetSize:
+          type: [integer, "null"]
+        model:
+          type: [string, "null"]
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+
